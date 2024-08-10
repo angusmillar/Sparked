@@ -1,0 +1,34 @@
+﻿@inject IJSRuntime JsRuntime
+
+<script src="./_content/ComponentLibrary/scripts.js"></script>
+
+<pre class="language-json">
+  <code class="language-json">@JsonMarkupString</code>
+</pre>
+
+@code{
+
+    [Parameter] public string? JsonValue { get; set; }
+
+    private MarkupString? JsonMarkupString;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(JsonValue))
+        {
+            JsonMarkupString = await GetMarkupString(JsonValue);
+        }
+        else
+        {
+            JsonMarkupString = await GetMarkupString(string.Empty);
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task<MarkupString> GetMarkupString(string json)
+    {
+        return new MarkupString(await JsRuntime.InvokeAsync<string>("highlight", json));
+    }
+
+}

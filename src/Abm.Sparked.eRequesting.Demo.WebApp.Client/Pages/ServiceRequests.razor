@@ -1,0 +1,143 @@
+@page "/"
+@using System.Security.AccessControl
+@using Abm.Sparked.eRequesting.Demo.Common.Services
+@using Abm.Sparked.eRequesting.Demo.Common.ViewModels
+@using Abm.Sparked.eRequesting.Demo.WebApp.Client.Components
+
+@inject IRequestingService RequestingService
+@inject IDialogService DialogService
+
+<script>
+    window.highlight = (code) => {
+        return Prism.highlight(code, Prism.languages.json, 'json');
+    }
+</script>
+
+<PageTitle>Pathology Requests</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Pathology Requests</MudText>
+<MudText Class="mb-8">Where Active and Intent is to Order</MudText>
+
+@if (_serviceRequestVmList == null)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true"/>
+}
+else
+{
+    <MudSwitch @bind-Value="IsPolling" Label="@(IsPolling ? "Polling Enabled" : "Polling Disabled")" @onclick="TogglePolling" Color="Color.Success"/>
+
+
+    <MudDataGrid Items="@_serviceRequestVmList"
+                 ReadOnly="@IsReadOnly" EditMode="@DataGridEditMode.Cell">
+        <Columns>
+            <HierarchyColumn T="ServiceRequestVm"/>
+            <PropertyColumn Property="x => EmptyIfNull(x.Id)" Title="Resource Id"/>
+            <PropertyColumn Property="x => EmptyIfNull(x.TestRequested)" Title="Test"/>
+        </Columns>
+        <ChildRowContent>
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Secondary" Variant="Variant.Outlined">
+                            <MudIcon Icon="@Icons.Material.Rounded.Biotech" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@EmptyIfNull(context.Item.TestRequested)</MudText>
+                        <MudText Typo="Typo.body2">@EmptyIfNull(context.Item.Category)</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIconButton Icon="@Icons.Material.Filled.Code" Color="Color.Default" @onclick="() => ShowFhirResourceJson(context.Item.Id)" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">Resource Id: @EmptyIfNull(context.Item.Id)</MudText>
+                    <MudText Typo="Typo.body2">Intent : @EmptyIfNull(context.Item.Intent)</MudText>
+                    <MudText Typo="Typo.body2">Requisition : @EmptyIfNull(context.Item.Requisition.Value)</MudText>
+                    <MudText Typo="Typo.body2">Status: @EmptyIfNull(context.Item.Status)</MudText>
+                    <MudText Typo="Typo.body2">AuthoredOn: @EmptyIfNull(context.Item.AuthoredOn.ToString())</MudText>
+                </MudCardContent>
+            </MudCard>
+        </ChildRowContent>
+        <PagerContent>
+            <MudDataGridPager T="ServiceRequestVm"/>
+        </PagerContent>
+    </MudDataGrid>
+    
+}
+
+@code {
+    private ServiceRequestVm[]? _serviceRequestVmList;
+    private PeriodicTimer? _pollingTimer = null;
+    private bool IsPolling { get; set; } = false;
+    private bool IsReadOnly { get; set; } = true;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshList();
+    }
+
+    private async Task RefreshList()
+    {
+        _serviceRequestVmList = (await RequestingService.GetServiceRequestVmList()).ToArray();
+    }
+
+    private string EmptyIfNull(string? item)
+    {
+        if (string.IsNullOrWhiteSpace(item))
+        {
+            return string.Empty;
+        }
+
+        return item;
+    }
+
+    private async Task TogglePolling()
+    {
+        if (_pollingTimer is not null)
+        {
+            _pollingTimer.Dispose();
+            _pollingTimer = null;
+            IsPolling = false;
+            return;
+        }
+
+        IsPolling = true;
+        await RefreshList();
+
+        _pollingTimer = new PeriodicTimer(new TimeSpan(0, 0, 5));
+        while (await _pollingTimer.WaitForNextTickAsync())
+        {
+            await RefreshList();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task ShowFhirResourceJson(string resourceId)
+    {
+        string? jsonValue = await RequestingService.GetServiceRequestJson(resourceId);
+        //const string JsonValue = "{\"menu\": {\n  \"id\": \"file\",\n  \"value\": \"File\",\n  \"{resourceId}\": {\n    \"menuitem\": [\n      {\"value\": \"New\", \"onclick\": \"CreateNewDoc()\"},\n      {\"value\": \"Open\", \"onclick\": \"OpenDoc()\"},\n      {\"value\": \"Close\", \"onclick\": \"CloseDoc()\"}\n    ]\n  }\n}}";
+
+        var parameters = new DialogParameters<JsonDialog>();
+        parameters.Add(x => x.ContentText, jsonValue ?? $"[[base]/ServiceRequest/{resourceId} was not found!]");
+        parameters.Add(x => x.ResourceType, "ServiceRequest" );
+        parameters.Add(x => x.ResourceId, resourceId);
+
+        var options = new DialogOptions()
+        {
+            Position = DialogPosition.TopCenter,
+            MaxWidth = MaxWidth.ExtraExtraLarge,
+            FullWidth = true,
+            CloseButton = true,
+            FullScreen = false,
+            CloseOnEscapeKey = true
+        };
+
+        IDialogReference dialog = await DialogService.ShowAsync<JsonDialog>($"[base]ServiceRequest/{resourceId}", parameters, options);
+        var result = await dialog.Result;
+    }
+
+
+}
