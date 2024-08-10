@@ -27,9 +27,9 @@ builder.Services.AddOptions<WebAppSettings>()
     .ValidateOnStart();
 
 //FHIR Navigator Service
-FhirNavigatorSettings? fhirNavigatorSettings = builder.Configuration.GetRequiredSection(FhirNavigatorSettings.SectionName)
-    .Get<FhirNavigatorSettings>();
-ArgumentNullException.ThrowIfNull(fhirNavigatorSettings);
+FhirNavigatorSettings fhirNavigatorSettings = builder.Configuration.GetRequiredSection(FhirNavigatorSettings.SectionName)
+    .Get<FhirNavigatorSettings>() ?? throw new NullReferenceException($"No {FhirNavigatorSettings.SectionName} settings found!");
+
 builder.Services.AddFhirNavigator(settings =>
 {
     settings.FhirRepositories = fhirNavigatorSettings.FhirRepositories;
