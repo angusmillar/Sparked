@@ -1,4 +1,6 @@
-﻿namespace Abm.Sparked.Common.Validator;
+﻿using Hl7.Fhir.Model;
+
+namespace Abm.Sparked.Common.Validator;
 
 public abstract class ValidatorBase
 {
@@ -20,6 +22,21 @@ public abstract class ValidatorBase
     protected  static ValidatorResponse GetSuccessfulResponse()
     {
         return new ValidatorResponse(IsValid: true);
+    }
+    
+    protected ValidatorResponse ValidateReferencePopulated(ResourceReference? serviceRequestSubject, string propertyLocation)
+    {
+        if (serviceRequestSubject is null)
+        {
+            return GetInvalidResponse(message: $"{propertyLocation} SHALL NOT be empty");    
+        }
+        
+        if (serviceRequestSubject.Reference is null)
+        {
+            return GetInvalidResponse(message: $"{propertyLocation} SHALL NOT be empty");    
+        }
+        
+        return GetSuccessfulResponse();
     }
     
 }

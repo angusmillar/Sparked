@@ -16,5 +16,10 @@ public class ClientRequestingService(HttpClient http) : IRequestingService
     {
         return await http.GetStringAsync($"serviceRequestJson/{resourceId}");
     }
-    
+
+    public async Task<List<TaskVm>> GetTaskVmList()
+    {
+        var serviceRequestVmList = await http.GetFromJsonAsync<List<TaskVm>>("taskVms");
+        return serviceRequestVmList ?? Array.Empty<TaskVm>().ToList();
+    }
 }

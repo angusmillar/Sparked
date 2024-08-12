@@ -12,7 +12,7 @@ public class ServiceRequestVm
     public string Status { get; set; } = string.Empty;
     public string Intent { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
-    
+    public DateTime LastUpdated { get; set; } = DateTime.Now;
     public DateTime AuthoredOn { get; set; } = DateTime.Now;
     public static ServiceRequestVm CreateViewModel(ServiceRequest fhirResource)
     {
@@ -20,6 +20,12 @@ public class ServiceRequestVm
         if (testRequested is null)
         {
             testRequested = fhirResource.Code?.Text ?? "No Test Found";
+        }
+
+        DateTime lastUpdated = DateTime.MinValue;
+        if (fhirResource.Meta.LastUpdated.HasValue)
+        {
+            lastUpdated = fhirResource.Meta.LastUpdated.Value.DateTime;
         }
         
         return new ServiceRequestVm
@@ -35,6 +41,8 @@ public class ServiceRequestVm
             Status = fhirResource.Status!.Value.GetLiteral(),
             Intent = fhirResource.Intent!.Value.GetLiteral(),
             Category = fhirResource.Category.First().Coding.First().Display,
+            AuthoredOn = fhirResource.AuthoredOnElement.ToDateTimeOffset(TimeSpan.FromHours(10)).DateTime,
+            LastUpdated = lastUpdated
         };
     }
     // public static Expression<Func<ServiceRequest, ServiceRequestVm>> FromFhir

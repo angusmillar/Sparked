@@ -1,4 +1,4 @@
-@page "/"
+@page "/tasks"
 @using System.Globalization
 @using System.Security.AccessControl
 @using Abm.Sparked.eRequesting.Demo.Common.Services
@@ -14,24 +14,23 @@
     }
 </script>
 
-<PageTitle>Pathology Requests</PageTitle>
+<PageTitle>Tasks</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Pathology Requests</MudText>
-<MudText Class="mb-8">Where Active and Intent is to Order</MudText>
+<MudText Typo="Typo.h3" GutterBottom="true">Tasks</MudText>
+<MudText Class="mb-8">Where ???</MudText>
 
-@if (_serviceRequestVmList == null)
+@if (_taskVmList == null)
 {
     <MudProgressCircular Color="Color.Default" Indeterminate="true"/>
 }
 else
 {
     <MudSwitch @bind-Value="IsPolling" Label="@(IsPolling ? "Polling Enabled" : "Polling Disabled")" @onclick="TogglePolling" Color="Color.Success"/>
-
-
-    <MudDataGrid Items="@_serviceRequestVmList"
+    
+    <MudDataGrid Items="@_taskVmList"
                  ReadOnly="@IsReadOnly" EditMode="@DataGridEditMode.Cell">
         <Columns>
-            <HierarchyColumn T="ServiceRequestVm"/>
+            <HierarchyColumn T="TaskVm"/>
             <TemplateColumn  Title="Category">
                 <CellTemplate>
                     <MudStack Row>
@@ -39,8 +38,8 @@ else
                             <MudIcon Icon="@Icons.Material.Rounded.Biotech" />
                         </MudAvatar>
                         <MudStack>
-                            <MudText Typo="Typo.body1">@EmptyIfNull(context.Item.TestRequested)</MudText>
-                            <MudText Typo="Typo.body2">@EmptyIfNull(context.Item.Category)</MudText>
+                            <MudText Typo="Typo.body1">@EmptyIfNull(context.Item.Id)</MudText>
+                            <MudText Typo="Typo.body2">@EmptyIfNull(context.Item.Intent)</MudText>
                         </MudStack>
                     </MudStack>
                 </CellTemplate>
@@ -54,14 +53,13 @@ else
                 <MudCardHeader>
                    
                     <CardHeaderContent>
-                        <MudText Typo="Typo.body1">@EmptyIfNull(context.Item.TestRequested)</MudText>
-                        <MudText Typo="Typo.body2">@EmptyIfNull(context.Item.Category)</MudText>
+                        <MudText Typo="Typo.body1">@EmptyIfNull(context.Item.Id)</MudText>
+                        <MudText Typo="Typo.body2">@EmptyIfNull(context.Item.Intent)</MudText>
                     </CardHeaderContent>
                     <CardHeaderActions>
                         <MudIconButton Icon="@Icons.Material.Filled.Code" Color="Color.Default" @onclick="() => ShowFhirResourceJson(context.Item.Id)" />
                     </CardHeaderActions>
                 </MudCardHeader>
-
                 <MudCardContent>
                     <MudPaper>
                     <MudGrid>
@@ -69,46 +67,25 @@ else
                             <MudField Label="Resource Id" Variant="Variant.Outlined">@context.Item.Id</MudField>
                         </MudItem>
                         <MudItem xs="12" sm="6" md="4">
-                            <MudField Label="Category" Variant="Variant.Outlined">@context.Item.Category</MudField>
+                            <MudField Label="Intent" Variant="Variant.Outlined">@context.Item.Intent</MudField>
                         </MudItem>
                         <MudItem xs="12" sm="6" md="4">
                             <MudTextField T="DateTime" Format="s" @bind-Value="context.Item.AuthoredOn" Label="Authored On" ReadOnly="true" Variant="Variant.Outlined"/>
                         </MudItem>
                     </MudGrid>
-                    <MudGrid>
-                        <MudItem xs="12" sm="6" md="4">
-                            <MudField Label="Requisition" Variant="Variant.Outlined">@context.Item.Requisition.Value</MudField>
-                        </MudItem>
-                        <MudItem xs="12" sm="6" md="4">
-                            <MudField Label="Status" Variant="Variant.Outlined">@context.Item.Status</MudField>
-                        </MudItem>
-                        <MudItem xs="12" sm="6" md="4">
-                            <MudTextField T="DateTime" Format="s" @bind-Value="context.Item.LastUpdated" Label="Last Updated" ReadOnly="true" Variant="Variant.Outlined"/>
-                        </MudItem>
-                    </MudGrid>
-                        <MudGrid>
-                            <MudItem xs="12" sm="6" md="4">
-                                <MudField Label="TestRequested" Variant="Variant.Outlined">@context.Item.TestRequested</MudField>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="4">
-                                <MudField Label="Intent" Variant="Variant.Outlined">@context.Item.Intent</MudField>
-                            </MudItem>
-                        </MudGrid>
                     </MudPaper>
-
-                 
                 </MudCardContent>
             </MudCard>
         </ChildRowContent>
         <PagerContent>
-            <MudDataGridPager T="ServiceRequestVm"/>
+            <MudDataGridPager T="TaskVm"/>
         </PagerContent>
     </MudDataGrid>
     
 }
 
 @code {
-    private ServiceRequestVm[]? _serviceRequestVmList;
+    private TaskVm[]? _taskVmList;
     private PeriodicTimer? _pollingTimer = null;
     private bool IsPolling { get; set; } = false;
     private bool IsReadOnly { get; set; } = true;
@@ -121,7 +98,7 @@ else
 
     private async Task RefreshList()
     {
-        _serviceRequestVmList = (await RequestingService.GetServiceRequestVmList()).ToArray();
+        _taskVmList = (await RequestingService.GetTaskVmList()).ToArray();
     }
 
     private string EmptyIfNull(string? item)

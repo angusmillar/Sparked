@@ -5,7 +5,7 @@ using Hl7.Fhir.Utility;
 
 namespace Abm.Sparked.Common.Validator;
 
-public class ServiceRequestValidator(IPatientValidator patientValidator) : IServiceRequestValidator
+public class ServiceRequestValidator(IPatientValidator patientValidator) :ValidatorBase, IServiceRequestValidator
 {
     private IFhirNavigator? _fhirNavigator;
     
@@ -27,9 +27,9 @@ public class ServiceRequestValidator(IPatientValidator patientValidator) : IServ
         validatorResponseList.Add(ValidateIntent(serviceRequest.Intent));
         validatorResponseList.Add(ValidateCategory(serviceRequest.Category));
         validatorResponseList.Add(ValidateCode(serviceRequest.Code));
-        validatorResponseList.Add(ValidateReferencePopulated(serviceRequest.Subject));
+        validatorResponseList.Add(ValidateReferencePopulated(serviceRequest.Subject, "ServiceRequest.subject"));
         validatorResponseList.Add(ValidateAuthoredOn(serviceRequest.AuthoredOnElement));
-        validatorResponseList.Add(ValidateReferencePopulated(serviceRequest.Requester));
+        validatorResponseList.Add(ValidateReferencePopulated(serviceRequest.Requester ,"ServiceRequest.Requester"));
         
         validatorResponseList.Add(await ValidateSubjectReference(serviceRequest));
         
@@ -135,20 +135,7 @@ public class ServiceRequestValidator(IPatientValidator patientValidator) : IServ
         
         return GetSuccessfulResponse();
     }
-    private ValidatorResponse ValidateReferencePopulated(ResourceReference? serviceRequestSubject)
-    {
-        if (serviceRequestSubject is null)
-        {
-            return GetInvalidResponse(message: "ServiceRequest.subject SHALL NOT be empty");    
-        }
-        
-        if (serviceRequestSubject.Reference is null)
-        {
-            return GetInvalidResponse(message: "ServiceRequest.subject SHALL NOT be empty");    
-        }
-        
-        return GetSuccessfulResponse();
-    }
+    
     private ValidatorResponse ValidateAuthoredOn(FhirDateTime serviceRequestAuthoredOn)
     {
         if (string.IsNullOrWhiteSpace(serviceRequestAuthoredOn.Value))
@@ -184,23 +171,6 @@ public class ServiceRequestValidator(IPatientValidator patientValidator) : IServ
         
         return GetSuccessfulResponse();
     }
-    private ValidatorResponse ConsolidatedValidationResponse(List<ValidatorResponse> validatorResponseList)
-    {
-        if (validatorResponseList.Any(x => !x.IsValid))
-        {
-            return GetInvalidResponse(string.Join(", ",
-                validatorResponseList.Where(a => !a.IsValid).Select(s => s.Message)));
-            
-        }
-
-        return GetSuccessfulResponse();
-    }
-    private static ValidatorResponse GetInvalidResponse(string message)
-    {
-        return new ValidatorResponse(IsValid: false, Message: message);
-    }
-    private static ValidatorResponse GetSuccessfulResponse()
-    {
-        return new ValidatorResponse(IsValid: true);
-    }
+    
+   
 }

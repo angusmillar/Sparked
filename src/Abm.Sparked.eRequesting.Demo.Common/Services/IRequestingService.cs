@@ -7,5 +7,6 @@ public interface IRequestingService
     Task<List<ServiceRequestVm>> GetServiceRequestVmList();
 
     Task<string?> GetServiceRequestJson(string resourceId);
-    
+    Task<List<TaskVm>> GetTaskVmList();
+
 }

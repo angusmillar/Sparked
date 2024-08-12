@@ -39,6 +39,7 @@ builder.Services.AddFhirNavigator(settings =>
 builder.Services.AddScoped<IRequestingService, ServiceRequestingService>();
 builder.Services.AddScoped<IServiceRequestValidator, ServiceRequestValidator>();
 builder.Services.AddScoped<IPatientValidator, PatientValidator>();
+builder.Services.AddScoped<ITaskValidator, TaskValidator>();
 
 //builder.Services.AddScoped<FhirTaskManager>();
 builder.Services.AddTimedHostedService<FhirTaskManager>(options =>
@@ -87,5 +88,9 @@ app.MapGet("/serviceRequestJson/{id}", async (string id, IRequestingService requ
     return await requestingService.GetServiceRequestJson(resourceId: id);
 });
 
+app.MapGet("/taskVms", async (IRequestingService requestingService) =>
+{
+    return await requestingService.GetTaskVmList();
+});
 
 app.Run();
