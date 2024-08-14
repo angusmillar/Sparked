@@ -1,6 +1,6 @@
 using FhirNavigator;
-using Abm.Sparked.Common.HostedServiceSupport;
 using Abm.Sparked.Common.Validator;
+using Abm.Sparked.eRequesting.Demo.Common.HostedServiceSupport;
 using Abm.Sparked.eRequesting.Demo.Common.Managers;
 using Abm.Sparked.eRequesting.Demo.Common.Services;
 using Abm.Sparked.eRequesting.Demo.Common.Settings;
@@ -40,6 +40,8 @@ builder.Services.AddScoped<IRequestingService, ServiceRequestingService>();
 builder.Services.AddScoped<IServiceRequestValidator, ServiceRequestValidator>();
 builder.Services.AddScoped<IPatientValidator, PatientValidator>();
 builder.Services.AddScoped<ITaskValidator, TaskValidator>();
+builder.Services.AddScoped<IPractitionerRoleValidator, PractitionerRoleValidator>();
+builder.Services.AddScoped<IOrganizationRoleValidator, OrganizationRoleValidator>();
 
 //builder.Services.AddScoped<FhirTaskManager>();
 builder.Services.AddTimedHostedService<FhirTaskManager>(options =>

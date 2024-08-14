@@ -1,6 +1,4 @@
-﻿using Abm.Sparked.Common.HostedServiceSupport;
-
-namespace Abm.Pyro.Application.HostedServiceSupport;
+﻿namespace Abm.Sparked.eRequesting.Demo.Common.HostedServiceSupport;
 
 public class TimedHostedServiceManagerOptions<T> where T : ITimedHostedService
 {

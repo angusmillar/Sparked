@@ -1,4 +1,5 @@
-﻿using FhirNavigator;
+﻿using System.Collections;
+using FhirNavigator;
 using Abm.Sparked.Common.eRequesting;
 using Abm.Sparked.Common.Support;
 using Abm.Sparked.Common.Validator;
@@ -24,10 +25,29 @@ public class Application(
         _fhirNavigator = fhirNavigatorFactory.GetFhirNavigator(appConfig.Value.DefaultFhirRepositoryCode);
 
         await CreateOrUpdateServiceRequestResourceList();
+        
+        await CreateOrUpdateTaskResourceList();
 
         logger.LogInformation("Successfully Created or Updated the Sparked example ServiceRequest resources");
     }
 
+    private async Task CreateOrUpdateTaskResourceList()
+    {
+        ArgumentNullException.ThrowIfNull(_fhirNavigator);
+        List<Hl7.Fhir.Model.Task> TaskList = GetTaskList();
+        // if (!await ValidateServiceRequestList(serviceRequestList))
+        // {
+        //     logger.LogError("No ServiceRequest resources were updated due to a failed validation");
+        //     return;
+        // }
+        //
+        // foreach (var serviceRequest in serviceRequestList)
+        // {
+        //     await _fhirNavigator.UpdateResource(serviceRequest);
+        //     logger.LogInformation("Updated: {ResourceType}/{ResourceId}", serviceRequest.TypeName, serviceRequest.Id);
+        // }
+    }
+    
     private async Task CreateOrUpdateServiceRequestResourceList()
     {
         ArgumentNullException.ThrowIfNull(_fhirNavigator);
@@ -80,6 +100,18 @@ public class Application(
         return serviceRequestList;
     }
 
+    private List<Hl7.Fhir.Model.Task> GetTaskList()
+    {
+        var taskList = new List<Hl7.Fhir.Model.Task>();
+        foreach (var pathologyServiceRequestInput in PathologyTaskInputList())
+        {
+            // taskList.Add(
+            //     PathologyServiceRequestFactory.GetServiceRequest(input: pathologyServiceRequestInput));
+        }
+
+        return taskList;
+    }
+    
     private static List<PathologyServiceRequestInput> PathologyServiceRequestInputList()
     {
         string placerScopeingHpio = "8003629900040425";
@@ -124,6 +156,62 @@ public class Application(
                 RequesterPractitionerRoleReference: GetResourceReference(ResourceType.PractitionerRole,
                     resourceId: "generalpractitioner-lumb-mary", display: "Dr LOWE, Abe")
             )
+        };
+    }
+    
+    private static List<PathologyTaskInput> PathologyTaskInputList()
+    {
+        string placerScopeingHpio = "8003629900040425"; 
+        return new List<PathologyTaskInput>()
+        {
+            //Example One
+            new PathologyTaskInput(
+                ResourceId: "angus-task-1",
+                GroupIdentifier: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
+                    value: "AAA0000-0000001"),
+                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
+                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
+                Code: new CodeableConcept(),
+                AuthoredOn: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)), 
+                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: "moylan-brock",
+                    "MOYLAN, Brock"),
+                Owner: GetResourceReference(ResourceType.Organization, resourceId: "moylan-brock", 
+                    "MOYLAN, Brock"),
+                Requester: GetResourceReference(ResourceType.PractitionerRole, resourceId: "moylan-brock",
+                    "MOYLAN, Brock")
+            ),
+            //Example Two
+            new PathologyTaskInput(
+                ResourceId: "angus-task-1",
+                GroupIdentifier: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
+                    value: "AAA0000-0000001"),
+                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
+                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
+                Code: new CodeableConcept(),
+                AuthoredOn: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)), 
+                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: "moylan-brock",
+                    "MOYLAN, Brock"),
+                Owner: GetResourceReference(ResourceType.Organization, resourceId: "moylan-brock",
+                    "MOYLAN, Brock"),
+                Requester: GetResourceReference(ResourceType.PractitionerRole, resourceId: "moylan-brock",
+                    "MOYLAN, Brock")
+            ),
+            //Example Two
+            new PathologyTaskInput(
+                ResourceId: "angus-task-1",
+                GroupIdentifier: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
+                    value: "AAA0000-0000001"),
+                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
+                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
+                Code: new CodeableConcept(),
+                AuthoredOn: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)), 
+                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: "moylan-brock",
+                    "MOYLAN, Brock"),
+                Owner: GetResourceReference(ResourceType.Organization, resourceId: "moylan-brock",
+                    "MOYLAN, Brock"),
+                Requester: GetResourceReference(ResourceType.PractitionerRole, resourceId: "moylan-brock",
+                    "MOYLAN, Brock")
+            ),
         };
     }
 

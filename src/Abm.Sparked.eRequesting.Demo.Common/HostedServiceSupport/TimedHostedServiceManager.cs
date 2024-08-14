@@ -1,9 +1,8 @@
-﻿using Abm.Pyro.Application.HostedServiceSupport;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Abm.Sparked.Common.HostedServiceSupport;
+namespace Abm.Sparked.eRequesting.Demo.Common.HostedServiceSupport;
 
 /// <summary>
 /// This class managers running a provided scoped service that implements the ITimedHostedService interface 

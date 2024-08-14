@@ -1,7 +1,6 @@
-﻿using Abm.Pyro.Application.HostedServiceSupport;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace Abm.Sparked.Common.HostedServiceSupport;
+namespace Abm.Sparked.eRequesting.Demo.Common.HostedServiceSupport;
 
 public static class TimedHostedServiceManagerExtensions
 {

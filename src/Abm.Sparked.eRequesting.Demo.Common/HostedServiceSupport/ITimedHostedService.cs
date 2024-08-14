@@ -1,4 +1,4 @@
-﻿namespace Abm.Sparked.Common.HostedServiceSupport;
+﻿namespace Abm.Sparked.eRequesting.Demo.Common.HostedServiceSupport;
 
 /// <summary>
 /// This interface can be implemented and run as a background hosted service using the service extension services.AddTimedHostedService&amp;lt;T&amp;gt;()

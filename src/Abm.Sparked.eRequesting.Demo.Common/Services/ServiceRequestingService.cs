@@ -23,10 +23,9 @@ public class ServiceRequestingService(
         IFhirNavigator fhirNavigator = fhirNavigatorFactory.GetFhirNavigator(webAppSettings.Value.DefaultFhirRepositoryCode);
         
         var fhirQuery = new SearchParams();
-        fhirQuery.Add("status", $"active");
         fhirQuery.Add("intent", $"order");
         
-        SearchInfo searchInfo = await fhirNavigator.Search<ServiceRequest>(fhirQuery);
+        await fhirNavigator.Search<ServiceRequest>(fhirQuery);
         
         List<ServiceRequestVm> serviceRequestVmList = new List<ServiceRequestVm>();
 
@@ -68,10 +67,9 @@ public class ServiceRequestingService(
         IFhirNavigator fhirNavigator = fhirNavigatorFactory.GetFhirNavigator(webAppSettings.Value.DefaultFhirRepositoryCode);
         
         var fhirQuery = new SearchParams();
-        fhirQuery.Add("status", $"active");
         fhirQuery.Add("intent", $"order");
         
-        SearchInfo searchInfo = await fhirNavigator.Search<Task>(fhirQuery);
+        await fhirNavigator.Search<Task>(fhirQuery);
         
         var taskVmList = new List<TaskVm>();
 

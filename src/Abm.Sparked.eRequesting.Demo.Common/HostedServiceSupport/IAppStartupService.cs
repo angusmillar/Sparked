@@ -1,4 +1,4 @@
-﻿namespace Abm.Sparked.Common.HostedServiceSupport;
+﻿namespace Abm.Sparked.eRequesting.Demo.Common.HostedServiceSupport;
 
 public interface IAppStartupService
 {
