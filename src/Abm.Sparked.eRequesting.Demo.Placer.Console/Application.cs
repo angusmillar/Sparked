@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using Abm.Sparked.Common.Constants;
 using FhirNavigator;
 using Abm.Sparked.Common.eRequesting;
 using Abm.Sparked.Common.Support;
@@ -16,82 +16,72 @@ public class Application(
     ILogger<Application> logger,
     IOptions<ApplicationConfiguration> appConfig,
     IFhirNavigatorFactory fhirNavigatorFactory,
-    IServiceRequestValidator serviceRequestValidator)
+    IServiceRequestValidator serviceRequestValidator,
+    ITaskValidator taskValidator)
 {
     private IFhirNavigator? _fhirNavigator;
 
     public async Task Run()
     {
         _fhirNavigator = fhirNavigatorFactory.GetFhirNavigator(appConfig.Value.DefaultFhirRepositoryCode);
-
-        await CreateOrUpdateServiceRequestResourceList();
         
-        await CreateOrUpdateTaskResourceList();
-
+        List<Resource> resourceList1 = GetPathologyServiceRequestList();
+        if (await ResourceListValidationPassed(resourceList1))
+        {
+            await CreateOrUpdateResourceList(resourceList1);
+        }
+        
+        
+        List<Resource> resourceList2 = GetTaskBasedPathologyRequestResourceList();
+        if (await ResourceListValidationPassed(resourceList1))
+        {
+            await CreateOrUpdateResourceList(resourceList1);
+        }
+        
         logger.LogInformation("Successfully Created or Updated the Sparked example ServiceRequest resources");
     }
 
-    private async Task CreateOrUpdateTaskResourceList()
+    private List<Resource> GetPathologyServiceRequestList()
     {
-        ArgumentNullException.ThrowIfNull(_fhirNavigator);
-        List<Hl7.Fhir.Model.Task> TaskList = GetTaskList();
-        // if (!await ValidateServiceRequestList(serviceRequestList))
-        // {
-        //     logger.LogError("No ServiceRequest resources were updated due to a failed validation");
-        //     return;
-        // }
-        //
-        // foreach (var serviceRequest in serviceRequestList)
-        // {
-        //     await _fhirNavigator.UpdateResource(serviceRequest);
-        //     logger.LogInformation("Updated: {ResourceType}/{ResourceId}", serviceRequest.TypeName, serviceRequest.Id);
-        // }
-    }
-    
-    private async Task CreateOrUpdateServiceRequestResourceList()
-    {
-        ArgumentNullException.ThrowIfNull(_fhirNavigator);
+        string placerScopeingHpio = "8003629900040425";
+        string barcodeValue = "SONIC-0002";
+        string resourceIdPrefix = "sonic-0002";
 
-        List<ServiceRequest> serviceRequestList = GetServiceRequestList();
-        if (!await ValidateServiceRequestList(serviceRequestList))
+        ResourceReference patientReference = GetResourceReference(
+            ResourceType.ServiceRequest,
+            resourceId: "moylan-brock",
+            "MOYLAN, Brock");
+
+        ResourceReference requesterReference = GetResourceReference(
+            ResourceType.PractitionerRole,
+            resourceId: "generalpractitioner-lumb-mary",
+            display: "Dr LOWE, Abe");
+
+        var testList = new List<SelectedTestInput>()
         {
-            logger.LogError("No ServiceRequest resources were updated due to a failed validation");
-            return;
-        }
+            new SelectedTestInput(displayPrefix: "FBC",
+                CodeableConcept: CodeableConceptSupport.GetRequestedSnomedTest(
+                    term: "26604007",
+                    preferredDisplay: "Full blood count")),
+            new SelectedTestInput(displayPrefix: "IM",
+                CodeableConcept: CodeableConceptSupport.GetRequestedSnomedTest(
+                    term: "269831005",
+                    preferredDisplay: "Infectious mononucleosis test")),
+            new SelectedTestInput(displayPrefix: "Rhubarb",
+                CodeableConcept: CodeableConceptSupport.GetRequestedFreeTextTest("Serum Rhubarb"))
+        };
 
-        foreach (var serviceRequest in serviceRequestList)
-        {
-            await _fhirNavigator.UpdateResource(serviceRequest);
-            logger.LogInformation("Updated: {ResourceType}/{ResourceId}", serviceRequest.TypeName, serviceRequest.Id);
-        }
-    }
+        List<PathologyServiceRequestInput> pathologyServiceRequestInputList = GetPathologyServiceRequestInputList(
+            resourceIdPrefix: resourceIdPrefix,
+            requisition: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
+                value: barcodeValue),
+            requestedDateTimeOffset: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)),
+            patientReference: patientReference,
+            requesterReference: requesterReference,
+            selectedTestInputList: testList);
 
-    private async Task<bool> ValidateServiceRequestList(List<ServiceRequest> serviceRequestList)
-    {
-        bool isValid = true;
-        IFhirNavigator validationFhirNavigator =
-            fhirNavigatorFactory.GetFhirNavigator(appConfig.Value.DefaultFhirRepositoryCode);
-        foreach (var serviceRequest in serviceRequestList)
-        {
-            ValidatorResponse validatorResponse =
-                await serviceRequestValidator.Validate(serviceRequest, fhirNavigator: validationFhirNavigator);
-            if (!validatorResponse.IsValid)
-            {
-                logger.LogCritical(
-                    "ServiceRequest Resource Id: {ResourceId} has the following validation errors: {Errors}",
-                    serviceRequest.Id, validatorResponse.Message);
-                isValid = false;
-            }
-            logger.LogInformation("Validated: {ResourceName}/{ResourceId} ",serviceRequest.TypeName, serviceRequest.Id);
-        }
-
-        return isValid;
-    }
-
-    private List<ServiceRequest> GetServiceRequestList()
-    {
-        var serviceRequestList = new List<ServiceRequest>();
-        foreach (var pathologyServiceRequestInput in PathologyServiceRequestInputList())
+        var serviceRequestList = new List<Resource>();
+        foreach (var pathologyServiceRequestInput in pathologyServiceRequestInputList)
         {
             serviceRequestList.Add(
                 PathologyServiceRequestFactory.GetServiceRequest(input: pathologyServiceRequestInput));
@@ -100,122 +90,177 @@ public class Application(
         return serviceRequestList;
     }
 
-    private List<Hl7.Fhir.Model.Task> GetTaskList()
+    private List<Resource> GetTaskBasedPathologyRequestResourceList()
     {
-        var taskList = new List<Hl7.Fhir.Model.Task>();
-        foreach (var pathologyServiceRequestInput in PathologyTaskInputList())
+        ArgumentNullException.ThrowIfNull(_fhirNavigator);
+
+        string placerScopeingHpio = "8003629900040425";
+        string barcodeValue = "SONIC-0002";
+        string resourceIdPrefix = "sonic-0002";
+        var requestedDateTime = new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10));
+
+        ResourceReference patientReference = GetResourceReference(
+            ResourceType.ServiceRequest,
+            resourceId: "moylan-brock",
+            "MOYLAN, Brock");
+
+        ResourceReference requesterReference = GetResourceReference(
+            ResourceType.PractitionerRole,
+            resourceId: "generalpractitioner-lumb-mary",
+            display: "Dr LOWE, Abe");
+
+        ResourceReference fillerOrganizationReference = GetResourceReference(
+            ResourceType.PractitionerRole,
+            resourceId: "pullabooka-pathology",
+            display: "Pullabooka Pathology");
+
+        var testList = new List<SelectedTestInput>()
         {
-            // taskList.Add(
-            //     PathologyServiceRequestFactory.GetServiceRequest(input: pathologyServiceRequestInput));
+            new SelectedTestInput(displayPrefix: "FBC",
+                CodeableConcept: CodeableConceptSupport.GetRequestedSnomedTest(
+                    term: "26604007",
+                    preferredDisplay: "Full blood count")),
+            new SelectedTestInput(displayPrefix: "IM",
+                CodeableConcept: CodeableConceptSupport.GetRequestedSnomedTest(
+                    term: "269831005",
+                    preferredDisplay: "Infectious mononucleosis test")),
+            new SelectedTestInput(displayPrefix: "Rhubarb",
+                CodeableConcept: CodeableConceptSupport.GetRequestedFreeTextTest("Serum Rhubarb")),
+            new SelectedTestInput(displayPrefix: "MetaPanel", CodeableConcept: new CodeableConcept(
+                system: "https://terminology.sonichealthcare.com.au/CodeSystem/sonic-pathology-local-order-codes",
+                code: "A000210",
+                text: "MetaPanel - Faecal metagenomics panel")),
+        };
+
+
+        List<PathologyServiceRequestInput> serviceRequestInputList = GetPathologyServiceRequestInputList(
+            resourceIdPrefix: resourceIdPrefix,
+            requisition: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
+                value: barcodeValue),
+            requestedDateTimeOffset: requestedDateTime,
+            patientReference: patientReference,
+            requesterReference: requesterReference,
+            selectedTestInputList: testList);
+
+        List<PathologyTaskInput> pathologyTaskInputList = GetPathologyTaskInputList(
+            resourceIdPrefix: resourceIdPrefix,
+            owner: fillerOrganizationReference,
+            pathologyServiceRequestInputList: serviceRequestInputList);
+
+
+        var resourceList = new List<Resource>();
+        foreach (var pathologyTaskInput in pathologyTaskInputList)
+        {
+            resourceList.Add(
+                PathologyTaskFactory.GetTask(input: pathologyTaskInput));
+        }
+
+        foreach (var serviceRequestInput in serviceRequestInputList)
+        {
+            resourceList.Add(
+                PathologyServiceRequestFactory.GetServiceRequest(input: serviceRequestInput));
+        }
+
+        return resourceList;
+    }
+
+    private List<PathologyTaskInput> GetPathologyTaskInputList(
+        string resourceIdPrefix, 
+        ResourceReference owner, 
+        List<PathologyServiceRequestInput> pathologyServiceRequestInputList)
+    {
+        var taskList = new List<PathologyTaskInput>();
+        foreach (var input in pathologyServiceRequestInputList)
+        {
+            taskList.Add(new PathologyTaskInput(
+                ResourceId: $"{resourceIdPrefix}-task",
+                GroupIdentifier: input.Requisition,
+                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
+                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
+                Code: new CodeableConcept(system: CodeSystemsConstants.TaskCodeSystem, code: "fulfill",
+                    text: "Fulfill the focal request"),
+                AuthoredOn: input.requestedDateTime,
+                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: input.ResourceId, display: null),
+                For: input.PatientReference,
+                Owner: owner,
+                Requester: input.RequesterPractitionerRoleReference
+                ));
         }
 
         return taskList;
     }
-    
-    private static List<PathologyServiceRequestInput> PathologyServiceRequestInputList()
+
+    private async Task CreateOrUpdateResourceList(List<Resource> resourceList)
     {
-        string placerScopeingHpio = "8003629900040425";
-        return new List<PathologyServiceRequestInput>()
+        ArgumentNullException.ThrowIfNull(_fhirNavigator);
+        
+        foreach (var resource in resourceList)
         {
-            //Example One
-            new PathologyServiceRequestInput(
-                ResourceId: "angus-serviceRequest-1",
-                Requisition: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
-                    value: "AAA0000-0000001"),
-                RequestedTest: CodeableConceptSupport.GetRequestedSnomedTest(term: "26604007",
-                    preferredDisplay: "Full blood count"),
-                requestedDateTime: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)),
-                PatientReference: GetResourceReference(ResourceType.Patient, resourceId: "moylan-brock",
-                    "MOYLAN, Brock"),
-                RequesterPractitionerRoleReference: GetResourceReference(ResourceType.PractitionerRole,
-                    resourceId: "generalpractitioner-lowe-abe", display: "Dr LOWE, Abe")
-            ),
-            //Example Two
-            new PathologyServiceRequestInput(
-                ResourceId: "angus-serviceRequest-2",
-                Requisition: IdentifierSupport.GetRequisition(scopeingHpio: "8003624900039295",
-                    value: "BBB0000-0000002"),
-                RequestedTest: CodeableConceptSupport.GetRequestedSnomedTest(term: "26604007",
-                    preferredDisplay: "Full blood count"),
-                requestedDateTime: new DateTimeOffset(2024, 08, 20, 10, 35, 00, TimeSpan.FromHours(10)),
-                PatientReference: GetResourceReference(ResourceType.Patient, resourceId: "ralph-rudolf",
-                    "RALPH, Rudolf"),
-                RequesterPractitionerRoleReference: GetResourceReference(ResourceType.PractitionerRole,
-                    resourceId: "generalpractitioner-faint-darryl", display: "Dr FAINT, Darryl")
-            ),
-            //Example Two
-            new PathologyServiceRequestInput(
-                ResourceId: "angus-serviceRequest-3",
-                Requisition: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
-                    value: "CCC0000-0000003"),
-                RequestedTest: CodeableConceptSupport.GetRequestedSnomedTest(term: "26604007",
-                    preferredDisplay: "Full blood count"),
-                requestedDateTime: new DateTimeOffset(2024, 08, 20, 10, 35, 00, TimeSpan.FromHours(10)),
-                PatientReference: GetResourceReference(ResourceType.Patient, resourceId: "italia-sofia",
-                    "ITALAIA, Sofia"),
-                RequesterPractitionerRoleReference: GetResourceReference(ResourceType.PractitionerRole,
-                    resourceId: "generalpractitioner-lumb-mary", display: "Dr LOWE, Abe")
-            )
-        };
+            await _fhirNavigator.UpdateResource(resource);
+            logger.LogInformation("Updated: {ResourceType}/{ResourceId}", resource.TypeName, resource.Id);
+        }
     }
     
-    private static List<PathologyTaskInput> PathologyTaskInputList()
+    private async Task<bool> ResourceListValidationPassed(List<Resource> resourceList)
     {
-        string placerScopeingHpio = "8003629900040425"; 
-        return new List<PathologyTaskInput>()
+        IFhirNavigator validationFhirNavigator =
+            fhirNavigatorFactory.GetFhirNavigator(appConfig.Value.DefaultFhirRepositoryCode);
+        
+        foreach (var resource in resourceList)
         {
-            //Example One
-            new PathologyTaskInput(
-                ResourceId: "angus-task-1",
-                GroupIdentifier: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
-                    value: "AAA0000-0000001"),
-                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
-                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
-                Code: new CodeableConcept(),
-                AuthoredOn: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)), 
-                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: "moylan-brock",
-                    "MOYLAN, Brock"),
-                Owner: GetResourceReference(ResourceType.Organization, resourceId: "moylan-brock", 
-                    "MOYLAN, Brock"),
-                Requester: GetResourceReference(ResourceType.PractitionerRole, resourceId: "moylan-brock",
-                    "MOYLAN, Brock")
-            ),
-            //Example Two
-            new PathologyTaskInput(
-                ResourceId: "angus-task-1",
-                GroupIdentifier: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
-                    value: "AAA0000-0000001"),
-                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
-                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
-                Code: new CodeableConcept(),
-                AuthoredOn: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)), 
-                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: "moylan-brock",
-                    "MOYLAN, Brock"),
-                Owner: GetResourceReference(ResourceType.Organization, resourceId: "moylan-brock",
-                    "MOYLAN, Brock"),
-                Requester: GetResourceReference(ResourceType.PractitionerRole, resourceId: "moylan-brock",
-                    "MOYLAN, Brock")
-            ),
-            //Example Two
-            new PathologyTaskInput(
-                ResourceId: "angus-task-1",
-                GroupIdentifier: IdentifierSupport.GetRequisition(scopeingHpio: placerScopeingHpio,
-                    value: "AAA0000-0000001"),
-                RequestStatus: Hl7.Fhir.Model.Task.TaskStatus.Requested,
-                Intent: Hl7.Fhir.Model.Task.TaskIntent.Order,
-                Code: new CodeableConcept(),
-                AuthoredOn: new DateTimeOffset(2024, 08, 20, 10, 30, 00, TimeSpan.FromHours(10)), 
-                Focus: GetResourceReference(ResourceType.ServiceRequest, resourceId: "moylan-brock",
-                    "MOYLAN, Brock"),
-                Owner: GetResourceReference(ResourceType.Organization, resourceId: "moylan-brock",
-                    "MOYLAN, Brock"),
-                Requester: GetResourceReference(ResourceType.PractitionerRole, resourceId: "moylan-brock",
-                    "MOYLAN, Brock")
-            ),
-        };
+            ValidatorResponse? validatorResponse = resource switch
+            {
+                ServiceRequest serviceRequest => await serviceRequestValidator.Validate(serviceRequest,
+                    fhirNavigator: validationFhirNavigator),
+                Hl7.Fhir.Model.Task task => await taskValidator.Validate(task, 
+                    fhirNavigator: validationFhirNavigator),
+                _ => null
+            };
+
+            ArgumentNullException.ThrowIfNull(validatorResponse);
+            
+            if (validatorResponse.IsValid)
+            {
+                logger.LogCritical(
+                    "{ResourceName} Resource Id: {ResourceId} has the following validation errors: {Errors}",
+                    resource.TypeName, resource.Id, validatorResponse.Message);
+                return false;
+            }
+            
+            logger.LogInformation("Validated: {ResourceName}/{ResourceId} ", resource.TypeName,
+                resource.Id);    
+            
+        }
+
+        return true;
     }
 
-    private static ResourceReference GetResourceReference(ResourceType resourceType, string resourceId, string? display)
+    private static List<PathologyServiceRequestInput> GetPathologyServiceRequestInputList(
+        string resourceIdPrefix,
+        Identifier requisition,
+        DateTimeOffset requestedDateTimeOffset,
+        ResourceReference patientReference,
+        ResourceReference requesterReference,
+        List<SelectedTestInput> selectedTestInputList)
+    {
+        var pathologyServiceRequestInputList = new List<PathologyServiceRequestInput>();
+        foreach (var selectedTestInput in selectedTestInputList)
+        {
+            pathologyServiceRequestInputList.Add(new PathologyServiceRequestInput(
+                ResourceId: $"{resourceIdPrefix}-{selectedTestInput.displayPrefix}",
+                Requisition: requisition,
+                RequestedTest: selectedTestInput.CodeableConcept,
+                requestedDateTime: requestedDateTimeOffset,
+                PatientReference: patientReference,
+                RequesterPractitionerRoleReference: requesterReference
+            ));
+        }
+
+        return pathologyServiceRequestInputList;
+    }
+
+    private static ResourceReference GetResourceReference(ResourceType resourceType, string resourceId,
+        string? display = null)
     {
         return new ResourceReference($"{resourceType.GetLiteral()}/{resourceId}", display: display);
     }

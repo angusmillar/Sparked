@@ -5,7 +5,7 @@ namespace Abm.Sparked.Common.eRequesting;
 
 public static class PathologyTaskFactory
 {
-    public static Task GetServiceRequest(PathologyTaskInput input)
+    public static Task GetTask(PathologyTaskInput input)
     {
         var task = new Task();
         task.Id = input.ResourceId;
@@ -15,6 +15,7 @@ public static class PathologyTaskFactory
         task.Code = input.Code;
         task.AuthoredOnElement = new FhirDateTime(input.AuthoredOn);
         task.Focus = input.Focus;
+        task.For = input.For;
         task.Owner = input.Owner;
         task.Requester = input.Requester;
         return task;

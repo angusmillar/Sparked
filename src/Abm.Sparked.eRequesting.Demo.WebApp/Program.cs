@@ -43,7 +43,6 @@ builder.Services.AddScoped<ITaskValidator, TaskValidator>();
 builder.Services.AddScoped<IPractitionerRoleValidator, PractitionerRoleValidator>();
 builder.Services.AddScoped<IOrganizationRoleValidator, OrganizationRoleValidator>();
 
-//builder.Services.AddScoped<FhirTaskManager>();
 builder.Services.AddTimedHostedService<FhirTaskManager>(options =>
     {
       options.TriggersEvery = TimeSpan.FromSeconds(5);

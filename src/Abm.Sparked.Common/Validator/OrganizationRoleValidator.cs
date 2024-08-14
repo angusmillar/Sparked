@@ -16,6 +16,8 @@ public class OrganizationRoleValidator : ValidatorBase, IOrganizationRoleValidat
     {
         _fhirNavigator = fhirNavigator;
         
+        await System.Threading.Tasks.Task.Delay(1);
+        
         var validatorResponseList = new List<ValidatorResponse>();
 
         //validatorResponseList.Add(ValidateGroupIdentifier(practitionerRole.GroupIdentifier));

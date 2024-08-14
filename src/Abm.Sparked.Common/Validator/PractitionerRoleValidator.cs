@@ -15,6 +15,7 @@ public class PractitionerRoleValidator : ValidatorBase, IPractitionerRoleValidat
     public async Task<ValidatorResponse> Validate(PractitionerRole practitionerRole, IFhirNavigator? fhirNavigator = null)
     {
         _fhirNavigator = fhirNavigator;
+        await System.Threading.Tasks.Task.Delay(1);
         
         var validatorResponseList = new List<ValidatorResponse>();
 

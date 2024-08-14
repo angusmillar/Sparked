@@ -10,5 +10,6 @@ public record PathologyTaskInput(
     CodeableConcept Code,
     DateTimeOffset AuthoredOn,
     ResourceReference Focus,
+    ResourceReference For,
     ResourceReference Owner,
     ResourceReference Requester);
